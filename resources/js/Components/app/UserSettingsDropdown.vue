@@ -36,6 +36,7 @@
                         <ResponsiveNavLink
                             :href="route('logout')"
                             :active="route().current('logout')"
+                            :method="'post'"
                         >
                             Logout
                         </ResponsiveNavLink>

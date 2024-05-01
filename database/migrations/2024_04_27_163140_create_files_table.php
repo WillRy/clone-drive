@@ -23,12 +23,10 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->foreignIdFor(User::class,'created_by');
-            $table->foreignIdFor(User::class,'updated_by');
+            $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
+            $table->foreignId('updated_by')->constrained('users')->onDelete('cascade');
 
             $table->softDeletes();
-
-
         });
     }
 
