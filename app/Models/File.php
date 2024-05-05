@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Kalnoy\Nestedset\NodeTrait;
 use App\Trait\HasCreatorAndUpdater;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class File extends Model
 {
@@ -14,14 +16,23 @@ class File extends Model
 
     protected $fillable = ['name', 'is_folder', 'user_id'];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function parent()
+    public function parent(): BelongsTo
     {
         return $this->belongsTo(File::class, 'parent_id');
+    }
+
+    public function owner(): Attribute
+    {
+        return Attribute::make(
+            get: function(mixed $value, array $attributes)  {
+                return $attributes['created_by'] === auth()->id() ? 'me' : $this->user->name;
+            }
+        );
     }
 
     protected static function boot()

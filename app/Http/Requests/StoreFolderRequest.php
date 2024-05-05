@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\File;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class StoreFolderRequest extends ParentIdBaseRequest
@@ -16,15 +18,17 @@ class StoreFolderRequest extends ParentIdBaseRequest
      */
     public function rules(): array
     {
-        $uniqueInsideUserFolder = Rule::unique('files', 'name')
-            ->where('parent_id', $this->parent_id)
-            ->where('created_by', auth()->id())
-            ->whereNull('deleted_at');
-
-        return [
-            ...parent::rules(),
-            'name' => ['required', $uniqueInsideUserFolder]
-        ];
+        return array_merge(parent::rules(),
+            [
+                'name' => [
+                    'required',
+                    Rule::unique(File::class, 'name')
+                        ->where('created_by', Auth::id())
+                        ->where('parent_id', $this->parent_id)
+                        ->whereNull('deleted_at')
+                ]
+            ]
+        );
     }
 
     public function messages()

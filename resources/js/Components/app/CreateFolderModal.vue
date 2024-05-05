@@ -24,7 +24,7 @@
     </Modal>
 </template>
 <script setup>
-import { useForm } from "@inertiajs/vue3";
+import { useForm, usePage } from "@inertiajs/vue3";
 import InputLabel from "../InputLabel.vue";
 import InputError from "../InputError.vue";
 import Modal from "../Modal.vue";
@@ -40,13 +40,17 @@ const props = defineProps({
     modelValue: Boolean,
 });
 
+const page = usePage();
+
 const form = useForm({
     name: "",
+    parent_id: null
 });
 
 const folderNameInput = ref(null);
 
 const createFolder = () => {
+    form.parent_id = page.props.folder.id;
     form.post(route("folder.create"), {
         preserveScroll: true,
         onSuccess: () => {

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->nestedSet();
             $table->boolean('is_folder');
             $table->string('mime')->nullable();
-            $table->string('size')->nullable();
+            $table->integer('size')->nullable();
 
             $table->timestamps();
 

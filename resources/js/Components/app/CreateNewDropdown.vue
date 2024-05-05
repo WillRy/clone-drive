@@ -1,10 +1,10 @@
 <template>
     <Menu as="div" class="relative block text-left">
-            <MenuButton
-                class="flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-                Create new
-            </MenuButton>
+        <MenuButton
+            class="flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+        >
+            Create new
+        </MenuButton>
         <transition
             enter-active-class="transition duration-100 ease-out"
             enter-from-class="transform scale-95 opacity-0"
@@ -18,15 +18,28 @@
             >
                 <div class="px-1 py-1">
                     <MenuItem v-slot="{ active, close }">
-                        <button class="text-gray-700 block w-full px-4 py-2 text-sm" @click="showCreateFolderModal(close)">New Folder</button>
+                        <button
+                            class="text-gray-700 block w-full px-4 py-2 text-sm"
+                            @click="showCreateFolderModal(close)"
+                        >
+                            New Folder
+                        </button>
                     </MenuItem>
                 </div>
                 <div class="px-1 py-1">
                     <MenuItem v-slot="{ active, close }">
-                        <button class="text-gray-700 block w-full px-4 py-2 text-sm">Upload Folder</button>
+                        <button
+                            class="text-gray-700 block w-full px-4 py-2 text-sm"
+                        >
+                            Upload Folder
+                        </button>
                     </MenuItem>
                     <MenuItem v-slot="{ active, close }">
-                        <button class="text-gray-700 block w-full px-4 py-2 text-sm">Upload Files</button>
+                        <button
+                            class="text-gray-700 block w-full px-4 py-2 text-sm"
+                        >
+                            Upload Files
+                        </button>
                     </MenuItem>
                 </div>
             </MenuItems>
@@ -45,5 +58,5 @@ const createFolderModal = ref(false);
 const showCreateFolderModal = (close) => {
     close();
     createFolderModal.value = true;
-}
+};
 </script>
