@@ -21,6 +21,7 @@ yarn-error.log
 
 #docker
 docker/dbdata
+docker/storage
 
 # others
 .composer

@@ -40,16 +40,30 @@ services:
       - app-network
 
   mailhog:
-      image: mailhog/mailhog
-      container_name: mailhog
-      restart: always
-      logging:
-        driver: "none" # disable saving logs
-      ports:
-        - 1025:1025 # smtp server
-        - 8025:8025 # web ui
-      networks:
-        - app-network
+    image: mailhog/mailhog
+    container_name: mailhog
+    restart: always
+    logging:
+      driver: "none" # disable saving logs
+    ports:
+      - 1025:1025 # smtp server
+      - 8025:8025 # web ui
+    networks:
+      - app-network
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./docker/storage:/data
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: Teste#123
+    command: server --console-address ":9001" /data
+    networks:
+      - app-network
 
 
 networks:

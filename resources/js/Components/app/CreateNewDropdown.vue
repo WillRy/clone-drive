@@ -17,7 +17,7 @@
                 class="absolute left-0 mt-2 w-full origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
             >
                 <div class="px-1 py-1">
-                    <MenuItem v-slot="{ active, close }">
+                    <MenuItem v-slot="{ close }">
                         <button
                             class="text-gray-700 block w-full px-4 py-2 text-sm"
                             @click="showCreateFolderModal(close)"
@@ -27,20 +27,8 @@
                     </MenuItem>
                 </div>
                 <div class="px-1 py-1">
-                    <MenuItem v-slot="{ active, close }">
-                        <button
-                            class="text-gray-700 block w-full px-4 py-2 text-sm"
-                        >
-                            Upload Folder
-                        </button>
-                    </MenuItem>
-                    <MenuItem v-slot="{ active, close }">
-                        <button
-                            class="text-gray-700 block w-full px-4 py-2 text-sm"
-                        >
-                            Upload Files
-                        </button>
-                    </MenuItem>
+                    <FileUploadMenuItem />
+                    <FolderUploadMenuItem />
                 </div>
             </MenuItems>
         </transition>
@@ -52,6 +40,8 @@
 import { Menu, MenuButton, MenuItems, MenuItem } from "@headlessui/vue";
 import { ref } from "vue";
 import CreateFolderModal from "./CreateFolderModal.vue";
+import FileUploadMenuItem from "./FileUploadMenuItem.vue";
+import FolderUploadMenuItem from "./FolderUploadMenuItem.vue";
 
 const createFolderModal = ref(false);
 

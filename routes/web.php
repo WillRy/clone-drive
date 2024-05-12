@@ -21,6 +21,7 @@ Route::controller(FileController::class)->middleware(['auth','verified'])->group
         ->name('myFiles');
 
     Route::post('/folder/create','createFolder')->name('folder.create');
+    Route::post('/file','store')->name('file.store');
 
     Route::redirect('/dashboard','/my-files')->name('dashboard');
 });

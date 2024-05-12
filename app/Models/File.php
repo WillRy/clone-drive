@@ -16,6 +16,21 @@ class File extends Model
 
     protected $fillable = ['name', 'is_folder', 'user_id'];
 
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function($model) {
+            if(!$model->parent) {
+                return;
+            }
+
+            $model->path = (!$model->parent->isRoot() ? $model->parent->path . '/' : '') . \Illuminate\Support\Str::slug($model->name);
+        });
+    }
+
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -35,18 +50,6 @@ class File extends Model
         );
     }
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function($model) {
-            if(!$model->parent) {
-                return;
-            }
-
-            $model->path = (!$model->parent->isRoot() ? $model->parent->path . '/' : '') . \Illuminate\Support\Str::slug($model->name);
-        });
-    }
 
     public function isOwnedBy($userId): bool
     {
@@ -56,5 +59,14 @@ class File extends Model
     public function isRoot()
     {
         return $this->parent_id === null;
+    }
+
+    public function getFileSize()
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+        $power = $this->size > 0 ? floor(log($this->size, 1024)) : 0;
+
+        return number_format($this->size / pow(1024, $power), 2, '.', ',') . ' ' . $units[$power];
     }
 }
