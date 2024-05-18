@@ -116,7 +116,7 @@ class FileController extends Controller
         $model->name = $file->getClientOriginalName();
         $model->size = $file->getSize();
         $model->mime = $file->getMimeType();
-        $model->created_by = $user;
+        $model->created_by = $user->id;
         $model->parent_id = $parent->id;
 
         $parent->appendNode($model);
