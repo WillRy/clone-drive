@@ -22,6 +22,7 @@ Route::controller(FileController::class)->middleware(['auth','verified'])->group
 
     Route::post('/folder/create','createFolder')->name('folder.create');
     Route::post('/file','store')->name('file.store');
+    Route::delete('/file','destroy')->name('file.delete');
 
     Route::redirect('/dashboard','/my-files')->name('dashboard');
 });

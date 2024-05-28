@@ -38,11 +38,22 @@
                     </div>
                 </li>
             </ol>
+            <div>
+                <DeleteFilesButton :delete-all="allSelected" :delete-ids="selectedIds" @delete="onDelete"/>
+            </div>
         </nav>
         <div class="flex-1 overflow-auto">
             <table class="min-w-full">
                 <thead class="bg-gray-100 border-b">
                     <tr>
+                        <th
+                            class="text-sm font-medium text-gray-900 px-6 py-4 text-left w-[30px] max-w-[30px] pr-0"
+                        >
+                            <Checkbox
+                                @change="onSelectAllChange"
+                                v-model:checked="allSelected"
+                            />
+                        </th>
                         <th
                             class="text-sm font-medium text-gray-900 px-6 py-4 text-left"
                         >
@@ -69,9 +80,34 @@
                     <tr
                         v-for="file in allFiles.data"
                         :key="file.id"
-                        class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100 cursor-pointer"
+                        class="border-b transition duration-300 ease-in-out hover:bg-blue-100 cursor-pointer"
+                        :class="
+                            (
+                                selected[file.id] !== undefined
+                                    ? selected[file.id]
+                                    : allSelected
+                            )
+                                ? 'bg-blue-50'
+                                : 'bg-white'
+                        "
                         @dblclick="openFolder(file)"
+                        @click.ctrl="toggleFileSelect(file)"
                     >
+                        <td
+                            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle w-[30px] max-w-[30px] pr-0"
+                        >
+                            <div class="flex items-center">
+                                <Checkbox
+                                    v-model="selected[file.id]"
+                                    :checked="
+                                        selected[file.id] !== undefined
+                                            ? selected[file.id]
+                                            : allSelected
+                                    "
+                                    @change="onSelectCheckboxChange(file)"
+                                />
+                            </div>
+                        </td>
                         <td
                             class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle"
                         >
@@ -110,25 +146,10 @@
                 v-if="loading"
                 class="py-8 text-center flex justify-center text-xl text-gray-400"
             >
-                <svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#4338ca">
-                    <g fill="none" fill-rule="evenodd">
-                        <g transform="translate(1 1)" stroke-width="2">
-                            <circle stroke-opacity=".5" cx="18" cy="18" r="18"/>
-                            <path d="M36 18c0-9.94-8.06-18-18-18">
-                                <animateTransform
-                                    attributeName="transform"
-                                    type="rotate"
-                                    from="0 18 18"
-                                    to="360 18 18"
-                                    dur="1s"
-                                    repeatCount="indefinite"/>
-                            </path>
-                        </g>
-                    </g>
-                </svg>
+                <LoadingIcon />
             </div>
 
-            <div ref="loadMoreIntercept"></div>
+            <div ref="loadMoreIntersect"></div>
         </div>
     </AuthenticatedLayout>
 </template>
@@ -137,11 +158,15 @@ import { HomeIcon } from "@heroicons/vue/20/solid";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Link, router } from "@inertiajs/vue3";
 import FileIcon from "@/Components/app/FileIcon.vue";
+import LoadingIcon from "@/Components/app/LoadingIcon.vue";
+import DeleteFilesButton from "@/Components/app/DeleteFilesButton.vue";
 import { onMounted } from "vue";
 import { ref } from "vue";
 import { onUpdated } from "vue";
 import { watch } from "vue";
-import {httpGet} from '@/Helper/http-helper.js';
+import { httpGet } from "@/Helper/http-helper.js";
+import Checkbox from "@/Components/Checkbox.vue";
+import { computed } from "vue";
 
 const props = defineProps({
     files: {
@@ -156,11 +181,17 @@ const props = defineProps({
     },
 });
 
-const loadMoreIntercept = ref(null);
+const allSelected = ref(false);
+const selected = ref({});
+const loadMoreIntersect = ref(null);
 const loading = ref(false);
 const allFiles = ref({
     data: props.files.data,
     next: props.files.links.next,
+});
+
+const selectedIds = computed(() => {
+    return Object.keys(selected.value).filter((id) => selected.value[id]);
 });
 
 const openFolder = (file) => {
@@ -174,31 +205,61 @@ const openFolder = (file) => {
 const loadMore = () => {
     const url = allFiles.value.next;
 
-
-    if(!url) {
+    if (!url) {
         return;
     }
 
-
     loading.value = true;
 
-    httpGet(url).then((response) => {
-        allFiles.value.data = [...allFiles.value.data, ...response.data.data];
-        allFiles.value.next = response.data.links.next;
-    }).finally(() => {
-        loading.value = false;
-    });
-
+    httpGet(url)
+        .then((response) => {
+            allFiles.value.data = [
+                ...allFiles.value.data,
+                ...response.data.data,
+            ];
+            allFiles.value.next = response.data.links.next;
+        })
+        .finally(() => {
+            loading.value = false;
+        });
 };
 
-
-
-watch(() => props.files, () => {
-    Object.assign(allFiles.value, {
-        data: props.files.data,
-        next: props.files.links.next,
+const onSelectAllChange = () => {
+    allFiles.value.data.forEach((file) => {
+        selected.value[file.id] = allSelected.value;
     });
-});
+};
+
+const toggleFileSelect = (file) => {
+    selected.value[file.id] = !selected.value[file.id];
+    onSelectCheckboxChange(file);
+};
+
+const onSelectCheckboxChange = (file) => {
+    if (!selected.value[file.id]) {
+        allSelected.value = false;
+        return;
+    }
+
+    allSelected.value = allFiles.value.data.every(
+        (file) => selected.value[file.id]
+    );
+};
+
+const onDelete = () => {
+    selected.value = {};
+    allSelected.value = false;
+};
+
+watch(
+    () => props.files,
+    () => {
+        Object.assign(allFiles.value, {
+            data: props.files.data,
+            next: props.files.links.next,
+        });
+    }
+);
 
 //infinity scroll
 onMounted(() => {
@@ -217,6 +278,6 @@ onMounted(() => {
         }
     );
 
-    observer.observe(loadMoreIntercept.value);
+    observer.observe(loadMoreIntersect.value);
 });
 </script>
