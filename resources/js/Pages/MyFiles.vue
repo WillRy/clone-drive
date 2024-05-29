@@ -38,7 +38,8 @@
                     </div>
                 </li>
             </ol>
-            <div>
+            <div class="flex">
+                <DownloadFilesButton :all="allSelected" :ids="selectedIds" class="mr-2"/>
                 <DeleteFilesButton :delete-all="allSelected" :delete-ids="selectedIds" @delete="onDelete"/>
             </div>
         </nav>
@@ -160,6 +161,7 @@ import { Link, router } from "@inertiajs/vue3";
 import FileIcon from "@/Components/app/FileIcon.vue";
 import LoadingIcon from "@/Components/app/LoadingIcon.vue";
 import DeleteFilesButton from "@/Components/app/DeleteFilesButton.vue";
+import DownloadFilesButton from "@/Components/app/DownloadFilesButton.vue";
 import { onMounted } from "vue";
 import { ref } from "vue";
 import { onUpdated } from "vue";
