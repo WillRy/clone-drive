@@ -31,7 +31,7 @@
 </template>
 <script setup>
 import ConfirmationDialog from '@/Components/ConfirmationDialog.vue';
-import { showErrorDialog } from '@/Services/event-bus.js';
+import { showErrorDialog, showSuccessNotification } from '@/Services/event-bus.js';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -87,6 +87,7 @@ const onDeleteConfirm = () => {
     deleteFilesForm.delete(route('file.delete'), {
         preserveScroll: true,
         onSuccess: () => {
+            showSuccessNotification('Selected files have been deleted');
             emit('delete');
         },
         onError: (errors) => {
