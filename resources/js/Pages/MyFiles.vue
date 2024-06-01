@@ -39,8 +39,24 @@
                 </li>
             </ol>
             <div class="flex">
-                <DownloadFilesButton :all="allSelected" :ids="selectedIds" class="mr-2"/>
-                <DeleteFilesButton :delete-all="allSelected" :delete-ids="selectedIds" @delete="onDelete"/>
+                <label class="flex items-center mr-3">
+                    Only favourites
+                    <Checkbox
+                        @change="showOnlyFavourites"
+                        v-model:checked="onlyFavourites"
+                        class="ml-2"
+                    />
+                </label>
+                <DownloadFilesButton
+                    :all="allSelected"
+                    :ids="selectedIds"
+                    class="mr-2"
+                />
+                <DeleteFilesButton
+                    :delete-all="allSelected"
+                    :delete-ids="selectedIds"
+                    @delete="onDelete"
+                />
             </div>
         </nav>
         <div class="flex-1 overflow-auto">
@@ -55,6 +71,9 @@
                                 v-model:checked="allSelected"
                             />
                         </th>
+                        <th
+                            class="text-sm font-medium text-gray-900 px-6 py-4 text-left"
+                        ></th>
                         <th
                             class="text-sm font-medium text-gray-900 px-6 py-4 text-left"
                         >
@@ -109,6 +128,16 @@
                                 />
                             </div>
                         </td>
+
+                        <td
+                            class="px-6 py-4 max-w-[40px] text-sm font-medium text-gray-900 align-middle"
+                        >
+                            <FavouritesButton
+                                @toggle="addRemoveFavourite(file)"
+                                :favourite="file.is_favourite"
+                            />
+                        </td>
+
                         <td
                             class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle"
                         >
@@ -161,14 +190,16 @@ import { Link, router } from "@inertiajs/vue3";
 import FileIcon from "@/Components/app/FileIcon.vue";
 import LoadingIcon from "@/Components/app/LoadingIcon.vue";
 import DeleteFilesButton from "@/Components/app/DeleteFilesButton.vue";
+import FavouritesButton from "@/Components/app/FavouritesButton.vue";
 import DownloadFilesButton from "@/Components/app/DownloadFilesButton.vue";
 import { onMounted } from "vue";
 import { ref } from "vue";
 import { onUpdated } from "vue";
 import { watch } from "vue";
-import { httpGet } from "@/Helper/http-helper.js";
+import { httpGet, httpPost } from "@/Helper/http-helper.js";
 import Checkbox from "@/Components/Checkbox.vue";
 import { computed } from "vue";
+import { showSuccessNotification } from "@/Services/event-bus.js";
 
 const props = defineProps({
     files: {
@@ -183,6 +214,7 @@ const props = defineProps({
     },
 });
 
+const onlyFavourites = ref(false);
 const allSelected = ref(false);
 const selected = ref({});
 const loadMoreIntersect = ref(null);
@@ -253,6 +285,25 @@ const onDelete = () => {
     allSelected.value = false;
 };
 
+const addRemoveFavourite = (file) => {
+    httpPost(route("file.addToFavourites"), { id: file.id }).then(() => {
+        file.is_favourite = !file.is_favourite;
+
+        if (file.is_favourite) {
+            showSuccessNotification("File has been added to favourites");
+        } else {
+            showSuccessNotification("File has been removed from favourites");
+        }
+    });
+};
+
+const showOnlyFavourites = () => {
+    router.visit(route("myFiles", {
+        folder: props.folder.path,
+        ...(onlyFavourites.value ? {favourites: 1} : {})
+    }));
+}
+
 watch(
     () => props.files,
     () => {
@@ -265,6 +316,8 @@ watch(
 
 //infinity scroll
 onMounted(() => {
+    onlyFavourites.value = (new URLSearchParams(window.location.search)).get('favourites') === '1';
+
     const observer = new IntersectionObserver(
         (entries) => {
             entries.forEach((entry) => {

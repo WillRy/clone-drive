@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AddToFavouritesRequest;
 use App\Http\Requests\FileActionRequest;
 use App\Http\Requests\StoreFileRequest;
 use App\Http\Requests\StoreFolderRequest;
 use App\Http\Requests\TrashFilesRequest;
 use App\Http\Resources\FileResource;
 use App\Models\File;
+use App\Models\StarredFile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -30,11 +32,19 @@ class FileController extends Controller
             $folder = $this->getRoot();
         }
 
+        $favourites = (int) $request->get('favourites');
+
         $files = File::query()
+            ->with('starred')
             ->where('parent_id', $folder->id)
             ->where('created_by', auth()->id())
             ->orderBy('is_folder', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('files.created_at', 'desc')
+            ->orderBy('files.id', 'desc')
+            ->when($favourites, function ($query) {
+                //this relation already filters by the authenticated user
+                $query->whereHas('starred');
+            })
             ->paginate(20);
 
 
@@ -304,5 +314,26 @@ class FileController extends Controller
         }
 
         return to_route('trash');
+    }
+
+    public function addToFavourites(AddToFavouritesRequest $request)
+    {
+        $data = $request->validated();
+
+        $file = StarredFile::query()
+            ->where('file_id', $data['id'])
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if($file) {
+            $file->delete();
+        } else {
+            StarredFile::create([
+                'file_id' => $data['id'],
+                'user_id' => auth()->id()
+            ]);
+        }
+
+        return response()->noContent();
     }
 }

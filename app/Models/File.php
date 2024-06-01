@@ -9,6 +9,8 @@ use Kalnoy\Nestedset\NodeTrait;
 use App\Trait\HasCreatorAndUpdater;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -23,8 +25,8 @@ class File extends Model
     {
         parent::boot();
 
-        static::creating(function($model) {
-            if(!$model->parent) {
+        static::creating(function ($model) {
+            if (!$model->parent) {
                 return;
             }
 
@@ -49,10 +51,15 @@ class File extends Model
         return $this->belongsTo(File::class, 'parent_id');
     }
 
+    public function starred(): HasOne
+    {
+        return $this->hasOne(StarredFile::class, 'file_id', 'id')->where('user_id', auth()->id());
+    }
+
     public function owner(): Attribute
     {
         return Attribute::make(
-            get: function(mixed $value, array $attributes)  {
+            get: function (mixed $value, array $attributes) {
                 return $attributes['created_by'] === auth()->id() ? 'me' : $this->user->name;
             }
         );
@@ -93,7 +100,7 @@ class File extends Model
     public function deleteFilesFromStorage(Collection|array $files)
     {
         foreach ($files as $file) {
-            if($file->is_folder) {
+            if ($file->is_folder) {
                 $this->deleteFilesFromStorage($file->children);
             } else {
                 Storage::delete($file->storage_path);
