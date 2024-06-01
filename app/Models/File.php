@@ -9,6 +9,7 @@ use Kalnoy\Nestedset\NodeTrait;
 use App\Trait\HasCreatorAndUpdater;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class File extends Model
@@ -75,5 +76,28 @@ class File extends Model
         $power = $this->size > 0 ? floor(log($this->size, 1024)) : 0;
 
         return number_format($this->size / pow(1024, $power), 2, '.', ',') . ' ' . $units[$power];
+    }
+
+    public function moveToTrash()
+    {
+        $this->deleted_at = now();
+        return $this->save();
+    }
+
+    public function deleteForever()
+    {
+        $this->deleteFilesFromStorage([$this]);
+        $this->forceDelete();
+    }
+
+    public function deleteFilesFromStorage(Collection|array $files)
+    {
+        foreach ($files as $file) {
+            if($file->is_folder) {
+                $this->deleteFilesFromStorage($file->children);
+            } else {
+                Storage::delete($file->storage_path);
+            }
+        }
     }
 }

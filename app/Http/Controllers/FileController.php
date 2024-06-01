@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\FileActionRequest;
 use App\Http\Requests\StoreFileRequest;
 use App\Http\Requests\StoreFolderRequest;
+use App\Http\Requests\TrashFilesRequest;
 use App\Http\Resources\FileResource;
 use App\Models\File;
 use App\Models\User;
@@ -18,14 +19,14 @@ class FileController extends Controller
 {
     public function myFiles(Request $request, string $folder = null)
     {
-        if($folder) {
+        if ($folder) {
             $folder = File::query()
                 ->where('created_by', auth()->id())
                 ->where('path', $folder)
                 ->firstOrFail();
         }
 
-        if(!$folder) {
+        if (!$folder) {
             $folder = $this->getRoot();
         }
 
@@ -37,13 +38,13 @@ class FileController extends Controller
             ->paginate(20);
 
 
-        $ancestors = FileResource::collection([...$folder->ancestors,$folder]);
+        $ancestors = FileResource::collection([...$folder->ancestors, $folder]);
 
         $folder = new FileResource($folder);
 
         $files = FileResource::collection($files);
 
-        if($request->wantsJson()) {
+        if ($request->wantsJson()) {
             return $files;
         }
 
@@ -54,13 +55,33 @@ class FileController extends Controller
         ]);
     }
 
+    public function trash(Request $request)
+    {
+        $files = File::query()
+            ->onlyTrashed()
+            ->where('created_by', auth()->id())
+            ->orderBy('is_folder', 'desc')
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(20);
+
+        $files =  FileResource::collection($files);
+
+        if ($request->wantsJson()) {
+            return $files;
+        }
+
+        return Inertia::render('Trash', [
+            'files' => $files
+        ]);
+    }
+
     public function createFolder(StoreFolderRequest $request)
     {
         $data = $request->validated();
 
         $parent = $request->parent;
 
-        if(!$parent) {
+        if (!$parent) {
             $parent = $this->getRoot();
         }
 
@@ -78,19 +99,18 @@ class FileController extends Controller
         $fileTree = $request->file_tree;
         $user = auth()->user()->id;
 
-        if(!$parent) {
+        if (!$parent) {
             $parent = $this->getRoot();
         }
 
-        if(!empty($fileTree)) {
+        if (!empty($fileTree)) {
             $this->saveFileTree($fileTree, $parent, $user);
         } else {
             /** @var UploadedFile $file */
-            foreach($data['files'] as $file) {
+            foreach ($data['files'] as $file) {
                 $this->saveFile($file, auth()->user(), $parent);
             }
         }
-
     }
 
     public function destroy(FileActionRequest $request)
@@ -99,16 +119,16 @@ class FileController extends Controller
 
         $parent = $request->parent;
 
-        if($data['all']) {
+        if ($data['all']) {
             $children = $parent->children;
-            foreach($children as $child) {
-                $child->delete();
+            foreach ($children as $child) {
+                $child->moveToTrash();
             }
         } else {
-            foreach($data['ids'] ?? [] as $id) {
+            foreach ($data['ids'] ?? [] as $id) {
                 $file = File::find($id);
-                if($file) {
-                    $file->delete();
+                if ($file) {
+                    $file->moveToTrash();
                 }
             }
         }
@@ -125,30 +145,30 @@ class FileController extends Controller
         $all = $data['all'] ?? false;
         $ids = $data['ids'] ?? [];
 
-        if(!$all && empty($ids)) {
+        if (!$all && empty($ids)) {
             return [
                 'message' => 'Please select files to download'
             ];
         }
 
 
-        if($all) {
+        if ($all) {
             $url = $this->createZip($parent->children);
-            $fileName = $parent->name.'.zip';
+            $fileName = $parent->name . '.zip';
         } else {
-            if(count($ids) === 1) {
+            if (count($ids) === 1) {
                 $file = File::find($ids[0]);
-                if($file->is_folder) {
-                    if($file->children->count() === 0) {
+                if ($file->is_folder) {
+                    if ($file->children->count() === 0) {
                         return [
                             'message' => 'The folder is empty'
                         ];
                     }
 
                     $url = $this->createZip($file->children);
-                    $fileName = $file->name.'.zip';
+                    $fileName = $file->name . '.zip';
                 } else {
-                    $dest = 'public/'.pathinfo($file->storage_path, PATHINFO_BASENAME);
+                    $dest = 'public/' . pathinfo($file->storage_path, PATHINFO_BASENAME);
                     Storage::copy($file->storage_path, $dest);
 
                     $url = asset(Storage::url($dest));
@@ -157,7 +177,7 @@ class FileController extends Controller
             } else {
                 $files = File::query()->whereIn('id', $ids)->get();
                 $url = $this->createZip($files);
-                $fileName = $parent->name.'.zip';
+                $fileName = $parent->name . '.zip';
             }
         }
 
@@ -175,8 +195,8 @@ class FileController extends Controller
 
     private function saveFileTree(array $fileTree, File $parent, int $user)
     {
-        foreach($fileTree as $name => $file) {
-            if(is_array($file)) {
+        foreach ($fileTree as $name => $file) {
+            if (is_array($file)) {
                 $folder = new File();
                 $folder->is_folder = true;
                 $folder->name = $name;
@@ -193,7 +213,7 @@ class FileController extends Controller
     {
         $model = new File();
 
-        $path = $file->store('/files/'.$user->id);
+        $path = $file->store('/files/' . $user->id);
 
         $model->storage_path = $path;
         $model->is_folder = false;
@@ -210,11 +230,11 @@ class FileController extends Controller
 
     private function createZip($files): string
     {
-        $zipPath = 'zip/'.\Illuminate\Support\Str::random().'.zip';
+        $zipPath = 'zip/' . \Illuminate\Support\Str::random() . '.zip';
         $publicPath = "public/$zipPath";
 
         $directory = dirname($publicPath);
-        if(!is_dir($directory)) {
+        if (!is_dir($directory)) {
             Storage::makeDirectory($directory);
         }
 
@@ -223,7 +243,7 @@ class FileController extends Controller
 
         $zip = new \ZipArchive();
 
-        if($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
+        if ($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
             $this->addFilesToZip($zip, $files);
         }
 
@@ -237,12 +257,52 @@ class FileController extends Controller
     // '/imagens/teste.png'
     private function addFilesToZip(\ZipArchive $zip, Collection $files, string $ancestors = '')
     {
-        foreach($files as $file) {
-            if($file->is_folder) {
-                $this->addFilesToZip($zip, $file->children, $ancestors.'/'.$file->name);
+        foreach ($files as $file) {
+            if ($file->is_folder) {
+                $this->addFilesToZip($zip, $file->children, $ancestors . '/' . $file->name);
             } else {
-                $zip->addFile(Storage::path($file->storage_path), $ancestors.'/'.$file->name);
+                $zip->addFile(Storage::path($file->storage_path), $ancestors . '/' . $file->name);
             }
         }
+    }
+
+    public function restore(TrashFilesRequest $request)
+    {
+        $data = $request->validated();
+
+        if ($data['all']) {
+            $children = File::onlyTrashed()->get();
+            foreach ($children as $child) {
+                $child->restore();
+            }
+        } else {
+            $ids = $data['ids'] ?? [];
+            $files = File::onlyTrashed()->whereIn('id', $ids)->get();
+            foreach ($files as $file) {
+                $file->restore();
+            }
+        }
+
+        return to_route('trash');
+    }
+
+    public function deleteForever(TrashFilesRequest $request)
+    {
+        $data = $request->validated();
+
+        if ($data['all']) {
+            $children = File::onlyTrashed()->get();
+            foreach ($children as $child) {
+                $child->deleteForever();
+            }
+        } else {
+            $ids = $data['ids'] ?? [];
+            $files = File::onlyTrashed()->whereIn('id', $ids)->get();
+            foreach ($files as $file) {
+                $file->deleteForever();
+            }
+        }
+
+        return to_route('trash');
     }
 }

@@ -13,7 +13,7 @@
                 <NavLink :href="route('myFiles')" :active="route().current('myFiles')">My Files</NavLink>
                 <NavLink href="/">Shared with me</NavLink>
                 <NavLink href="/">Shared by me</NavLink>
-                <NavLink href="/">Trash</NavLink>
+                <NavLink :href="route('trash')" :active="route().current('trash')">Trash</NavLink>
             </div>
         </div>
     </nav>

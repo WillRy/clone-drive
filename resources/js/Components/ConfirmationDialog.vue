@@ -8,7 +8,7 @@
                     >Cancel
                 </SecondaryButton>
                 <DangerButton class="ml-3" @click="($event) => $emit('confirm')">
-                    Ok
+                    Confirm
                 </DangerButton>
             </div>
         </div>
