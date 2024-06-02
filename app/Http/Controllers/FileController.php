@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AddToFavouritesRequest;
 use App\Http\Requests\FileActionRequest;
+use App\Http\Requests\ShareFilesRequest;
 use App\Http\Requests\StoreFileRequest;
 use App\Http\Requests\StoreFolderRequest;
 use App\Http\Requests\TrashFilesRequest;
 use App\Http\Resources\FileResource;
+use App\Mail\ShareFilesMail;
 use App\Models\File;
+use App\Models\FileShare;
 use App\Models\StarredFile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -335,5 +339,64 @@ class FileController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    public function share(ShareFilesRequest $request)
+    {
+        $data = $request->validated();
+
+        $all = $data['all'] ?? false;
+        $ids = $data['ids'] ?? [];
+        $email = $data['email'] ?? [];
+        $parent = $request->parent;
+
+        //flash message
+        if (!$all && empty($ids)) {
+            return redirect()->back()->with('error', 'Please select files to share');
+        }
+
+        $user = User::query()->where('email', $email)->first();
+
+        //não avisar que o email não existe, por razão de segurança
+        if(!$user) {
+            return redirect()->back();
+        }
+
+        if($all) {
+            $files = $parent->children;
+        } else {
+            $files = File::query()->whereIn('id', $ids)->get();
+        }
+
+        $existingFiles = FileShare::query()
+            ->whereIn('file_id', $files->pluck('id'))
+            ->where('user_id', $user->id)
+            ->pluck('file_id')
+            ->toArray();
+
+        $data = [];
+        foreach ($files as $file) {
+            if(in_array($file->id, $existingFiles)) {
+                continue;
+            }
+
+            $data[] = [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        FileShare::insert($data);
+
+
+        Mail::to($user->email)->send(new ShareFilesMail(
+            $user,
+            auth()->user(),
+            $files
+        ));
+
+        return redirect()->back();
     }
 }

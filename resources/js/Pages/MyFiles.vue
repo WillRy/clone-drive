@@ -47,6 +47,11 @@
                         class="ml-2"
                     />
                 </label>
+                <ShareFilesButton
+                    :all-selected="allSelected"
+                    :selected-ids="selectedIds"
+                    class="mr-2"
+                />
                 <DownloadFilesButton
                     :all="allSelected"
                     :ids="selectedIds"
@@ -190,6 +195,7 @@ import { Link, router } from "@inertiajs/vue3";
 import FileIcon from "@/Components/app/FileIcon.vue";
 import LoadingIcon from "@/Components/app/LoadingIcon.vue";
 import DeleteFilesButton from "@/Components/app/DeleteFilesButton.vue";
+import ShareFilesButton from "@/Components/app/ShareFilesButton.vue";
 import FavouritesButton from "@/Components/app/FavouritesButton.vue";
 import DownloadFilesButton from "@/Components/app/DownloadFilesButton.vue";
 import { onMounted } from "vue";

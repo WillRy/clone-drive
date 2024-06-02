@@ -1,24 +1,24 @@
 <template>
     <Modal :show="modelValue" max-width="sm" @show="onShow">
         <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900">Create New Folder</h2>
+            <h2 class="text-lg font-medium text-gray-900">Share Files</h2>
             <div class="mt-6">
-                <InputLabel for="folderName" class="sr-only">Name</InputLabel>
+                <InputLabel for="shareEmail" class="sr-only">Enter E-mail Address</InputLabel>
                 <TextInput
-                    ref="folderNameInput"
+                    ref="emailInput"
                     type="text"
-                    id="folderName"
-                    v-model="form.name"
+                    id="shareEmail"
+                    v-model="form.email"
                     class="mt-1 block w-full"
-                    :error="form.errors.name"
-                    placeholder="Folder name"
-                    @keyup.enter="createFolder"
+                    :error="form.errors.email"
+                    placeholder="Enter E-mail Address"
+                    @keyup.enter="share"
                 />
-                <InputError :message="form.errors.name" class="mt-2" />
+                <InputError :message="form.errors.email" class="mt-2" />
             </div>
             <div class="mt-6 flex justify-end">
                 <SecondaryButton @click="closeModal">Cancel</SecondaryButton>
-                <PrimaryButton @click="createFolder" class="ml-3" :class="{'opacity-25': form.processing}" :disabled="form.processing">Submit</PrimaryButton>
+                <PrimaryButton @click="share" class="ml-3" :class="{'opacity-25': form.processing}" :disabled="form.processing">Submit</PrimaryButton>
             </div>
         </div>
     </Modal>
@@ -39,27 +39,41 @@ const $emit = defineEmits(["update:modelValue"]);
 
 const props = defineProps({
     modelValue: Boolean,
+    allSelected: Boolean,
+    selectedIds: Array
 });
 
 const page = usePage();
 
 const form = useForm({
-    name: "",
-    parent_id: null
+    email: "",
+    parent_id: null,
+    all: false,
+    ids: [],
 });
 
-const folderNameInput = ref(null);
+const emailInput = ref(null);
 
-const createFolder = () => {
+const share = () => {
     form.parent_id = page.props.folder.id;
-    form.post(route("folder.create"), {
+
+    if(props.allSelected) {
+        form.all = true;
+    } else {
+        form.ids = props.selectedIds;
+    }
+
+    form.post(route("file.share"), {
         preserveScroll: true,
         onSuccess: () => {
-            showSuccessNotification(`The folder "${form.name}" was created`);
+            showSuccessNotification(`Selected files will be shared to "${form.email}" if email exists in the system`)
             closeModal();
         },
         onError: () => {
-            folderNameInput.value.focus();
+            emailInput.value.focus();
+        },
+        onFinish: () => {
+            form.reset();
         }
     });
 };
@@ -72,6 +86,6 @@ const closeModal = () => {
 
 const onShow = async () => {
     await nextTick();
-    folderNameInput.value.focus();
+    emailInput.value.focus();
 };
 </script>

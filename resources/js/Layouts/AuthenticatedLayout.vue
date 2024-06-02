@@ -43,8 +43,18 @@ import { onMounted } from "vue";
 import { onBeforeUnmount } from "vue";
 import { ref } from "vue";
 import ErrorDialog from "@/Components/app/ErrorDialog.vue";
+import { watch } from "vue";
 
 const page = usePage();
+
+watch(() => page.props.flash, (flash) => {
+    if (flash.success) {
+        showSuccessNotification(flash.success);
+    }
+    if(flash.error) {
+        showErrorDialog(flash.error);
+    }
+});
 
 const fileUploadForm = useForm({
     files: [],
