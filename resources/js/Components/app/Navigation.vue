@@ -11,8 +11,8 @@
 
             <div class="py-3">
                 <NavLink :href="route('myFiles')" :active="route().current('myFiles')">My Files</NavLink>
-                <NavLink href="/">Shared with me</NavLink>
-                <NavLink href="/">Shared by me</NavLink>
+                <NavLink :href="route('file.sharedWithMe')" :active="route().current('file.sharedWithMe')">Shared with me</NavLink>
+                <NavLink :href="route('file.sharedByMe')" :active="route().current('file.sharedByMe')">Shared by me</NavLink>
                 <NavLink :href="route('trash')" :active="route().current('trash')">Trash</NavLink>
             </div>
         </div>

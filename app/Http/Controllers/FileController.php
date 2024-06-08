@@ -76,6 +76,7 @@ class FileController extends Controller
             ->where('created_by', auth()->id())
             ->orderBy('is_folder', 'desc')
             ->orderBy('deleted_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(20);
 
         $files =  FileResource::collection($files);
@@ -158,6 +159,7 @@ class FileController extends Controller
 
         $all = $data['all'] ?? false;
         $ids = $data['ids'] ?? [];
+        $zipName = $parent->name;
 
         if (!$all && empty($ids)) {
             return [
@@ -168,31 +170,9 @@ class FileController extends Controller
 
         if ($all) {
             $url = $this->createZip($parent->children);
-            $fileName = $parent->name . '.zip';
+            $fileName = "{$zipName}.zip";
         } else {
-            if (count($ids) === 1) {
-                $file = File::find($ids[0]);
-                if ($file->is_folder) {
-                    if ($file->children->count() === 0) {
-                        return [
-                            'message' => 'The folder is empty'
-                        ];
-                    }
-
-                    $url = $this->createZip($file->children);
-                    $fileName = $file->name . '.zip';
-                } else {
-                    $dest = 'public/' . pathinfo($file->storage_path, PATHINFO_BASENAME);
-                    Storage::copy($file->storage_path, $dest);
-
-                    $url = asset(Storage::url($dest));
-                    $fileName = $file->name;
-                }
-            } else {
-                $files = File::query()->whereIn('id', $ids)->get();
-                $url = $this->createZip($files);
-                $fileName = $parent->name . '.zip';
-            }
+            [$url, $fileName] = $this->getDownloadUrl($ids, $zipName);
         }
 
         return [
@@ -329,7 +309,7 @@ class FileController extends Controller
             ->where('user_id', auth()->id())
             ->first();
 
-        if($file) {
+        if ($file) {
             $file->delete();
         } else {
             StarredFile::create([
@@ -358,11 +338,11 @@ class FileController extends Controller
         $user = User::query()->where('email', $email)->first();
 
         //não avisar que o email não existe, por razão de segurança
-        if(!$user) {
+        if (!$user) {
             return redirect()->back();
         }
 
-        if($all) {
+        if ($all) {
             $files = $parent->children;
         } else {
             $files = File::query()->whereIn('id', $ids)->get();
@@ -376,7 +356,7 @@ class FileController extends Controller
 
         $data = [];
         foreach ($files as $file) {
-            if(in_array($file->id, $existingFiles)) {
+            if (in_array($file->id, $existingFiles)) {
                 continue;
             }
 
@@ -398,5 +378,119 @@ class FileController extends Controller
         ));
 
         return redirect()->back();
+    }
+
+    public function sharedWithMe(Request $request)
+    {
+        $files = File::getSharedWithMe()->paginate(20);
+
+        $files =  FileResource::collection($files);
+
+        if ($request->wantsJson()) {
+            return $files;
+        }
+
+        return Inertia::render('SharedWithMe', [
+            'files' => $files
+        ]);
+    }
+
+    public function sharedByMe(Request $request)
+    {
+        $files = File::getSharedByMe()->paginate(20);
+
+        $files =  FileResource::collection($files);
+
+        if ($request->wantsJson()) {
+            return $files;
+        }
+
+        return Inertia::render('SharedByMe', [
+            'files' => $files
+        ]);
+    }
+
+    public function downloadSharedWithMe(FileActionRequest $request)
+    {
+        $data = $request->validated();
+
+        $all = $data['all'] ?? false;
+        $ids = $data['ids'] ?? [];
+        $zipName = 'share_with_me';
+
+        if (!$all && empty($ids)) {
+            return redirect()->back()->with('error', 'Please select files to download');
+        }
+
+        if ($all) {
+            $files = File::getSharedWithMe()->get();
+
+            $url = $this->createZip($files);
+            $fileName = "{$zipName}.zip";
+        } else {
+            [$url, $fileName] = $this->getDownloadUrl($ids, $zipName);
+        }
+
+        return [
+            'url' => $url,
+            'fileName' => $fileName
+        ];
+    }
+
+    public function downloadSharedByMe(FileActionRequest $request)
+    {
+        $data = $request->validated();
+
+        $all = $data['all'] ?? false;
+        $ids = $data['ids'] ?? [];
+        $zipName = 'share_by_me';
+
+        if (!$all && empty($ids)) {
+            return redirect()->back()->with('error', 'Please select files to download');
+        }
+
+        if ($all) {
+            $files = File::getSharedByMe()->get();
+
+            $url = $this->createZip($files);
+            $fileName = "{$zipName}.zip";
+        } else {
+            [$url, $fileName] = $this->getDownloadUrl($ids, $zipName);
+        }
+
+        return [
+            'url' => $url,
+            'fileName' => $fileName
+        ];
+    }
+
+
+    private function getDownloadUrl(
+        array $ids,
+        string $zipName
+    ) {
+        if (count($ids) === 1) {
+            $file = File::find($ids[0]);
+            if ($file->is_folder) {
+                if ($file->children->count() === 0) {
+                    throw new \Exception('The folder is empty');
+                }
+
+                $url = $this->createZip($file->children);
+                $fileName = $file->name . '.zip';
+            } else {
+                $dest = 'public/' . pathinfo($file->storage_path, PATHINFO_BASENAME);
+                Storage::copy($file->storage_path, $dest);
+
+                $url = asset(Storage::url($dest));
+                $fileName = $file->name;
+            }
+        } else {
+            $files = File::query()->whereIn('id', $ids)->get();
+            $url = $this->createZip($files);
+            $fileName = "{$zipName}.zip";
+        }
+
+        return  [$url, $fileName];
     }
 }

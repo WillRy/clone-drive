@@ -107,4 +107,31 @@ class File extends Model
             }
         }
     }
+
+    public static function getSharedWithMe()
+    {
+        return File::query()
+            ->select('files.*')
+            ->join('file_shares', function($query) {
+                $query
+                    ->on('file_shares.file_id', '=', 'files.id')
+                    ->where('file_shares.user_id', auth()->id());
+            })
+            ->orderBy('file_shares.created_at', 'desc')
+            ->orderBy('files.id', 'desc')
+            ->orderBy('is_folder', 'desc');
+    }
+
+    public static function getSharedByMe()
+    {
+        return File::query()
+            ->select('files.*')
+            ->join('file_shares', function($query) {
+                $query->on('file_shares.file_id', '=', 'files.id');
+            })
+            ->where('files.created_by', auth()->id())
+            ->orderBy('file_shares.created_at', 'desc')
+            ->orderBy('files.id', 'desc')
+            ->orderBy('is_folder', 'desc');
+    }
 }

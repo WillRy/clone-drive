@@ -26,9 +26,24 @@ class FileActionRequest extends ParentIdBaseRequest
     {
         return array_merge(parent::rules(), [
             'all' => 'nullable|boolean',
-            'ids.*' => Rule::exists(File::class,'id')->where(function ($query) {
-                return $query->where('created_by', auth()->id());
-            }),
+            'ids.*' => [
+                Rule::exists(File::class,'id'),
+                function ($attribute, $value, $fail) {
+                    $file = File::query()
+                        ->leftJoin('file_shares', 'file_shares.file_id', '=', 'files.id')
+                        ->where('files.id', $value)
+                        ->where(function ($query) {
+                            return $query
+                                ->where('files.created_by', auth()->id())
+                                ->orWhere('file_shares.user_id', auth()->id());
+                        })
+                        ->first();
+
+                    if(!$file){
+                        $fail("Invalid ID {$value}");
+                    }
+                }
+            ],
         ]);
     }
 }

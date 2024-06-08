@@ -36,6 +36,16 @@ const props = defineProps({
         required: false,
         default: () => [],
     },
+    sharedWithMe: {
+        type: Boolean,
+        default: false,
+        required: false,
+    },
+    sharedByMe: {
+        type: Boolean,
+        default: false,
+        required: false,
+    },
 });
 
 
@@ -48,8 +58,12 @@ const download = () => {
         return showErrorDialog("Please select at least one file to download");
     }
 
+    const p = new URLSearchParams();
 
-    p.append('parent_id', page.props.folder.id);
+    if(page.props?.folder?.id) {
+        p.append('parent_id', page.props.folder.id);
+    }
+
     if(props.all) {
         p.append('all', props.all);
     } else {
@@ -58,9 +72,15 @@ const download = () => {
         });
     }
 
-    p
 
-    httpGet(route('file.download')+'?'+p.toString()).then((r) => {
+    let url = route('file.download');
+    if(props.sharedWithMe) {
+        url = route('file.downloadSharedWithMe');
+    } else if(props.sharedByMe) {
+        url = route('file.downloadSharedByMe');
+    }
+
+    httpGet(url+'?'+p.toString()).then((r) => {
         if(r.data.message) {
             return showErrorDialog(r.data.message);
         }
@@ -75,7 +95,9 @@ const download = () => {
         a.click();
 
     }).catch((e) => {
-        console.log(e);
+        if(e.response) {
+            return showErrorDialog(e.response.data.message);
+        }
     });
 
     console.log('Download files');
