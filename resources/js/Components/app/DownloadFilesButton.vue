@@ -80,6 +80,12 @@ const download = () => {
         url = route('file.downloadSharedByMe');
     }
 
+    const search = (new URLSearchParams(window.location.search)).get('search');
+    if(search) {
+        url = route('file.downloadSearch');
+        p.append('search', search);
+    }
+
     httpGet(url+'?'+p.toString()).then((r) => {
         if(r.data.message) {
             return showErrorDialog(r.data.message);

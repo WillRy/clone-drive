@@ -108,30 +108,54 @@ class File extends Model
         }
     }
 
-    public static function getSharedWithMe()
+    public static function getSharedWithMe(?string $search = null)
     {
         return File::query()
             ->select('files.*')
-            ->join('file_shares', function($query) {
+            ->join('file_shares', function ($query) {
                 $query
                     ->on('file_shares.file_id', '=', 'files.id')
                     ->where('file_shares.user_id', auth()->id());
+            })
+            ->when(!empty($search),function($query) use($search){
+                $query->where('name', 'like', "%{$search}%");
             })
             ->orderBy('file_shares.created_at', 'desc')
             ->orderBy('files.id', 'desc')
             ->orderBy('is_folder', 'desc');
     }
 
-    public static function getSharedByMe()
+    public static function getSharedByMe(?string $search = null)
     {
         return File::query()
             ->select('files.*')
-            ->join('file_shares', function($query) {
+            ->join('file_shares', function ($query) {
                 $query->on('file_shares.file_id', '=', 'files.id');
             })
             ->where('files.created_by', auth()->id())
+            ->when(!empty($search),function($query) use($search){
+                $query->where('name', 'like', "%{$search}%");
+            })
             ->orderBy('file_shares.created_at', 'desc')
             ->orderBy('files.id', 'desc')
             ->orderBy('is_folder', 'desc');
+    }
+
+    public static function visibleFilesBySearch(string $search)
+    {
+        return File::query()
+            ->select('files.*')
+            ->leftJoin('file_shares', 'file_shares.file_id', '=', 'files.id')
+            ->whereRaw('files.name like ?',"%$search%")
+            ->where(function ($query) {
+                return $query
+                    ->where('files.created_by', auth()->id())
+                    ->orWhere('file_shares.user_id', auth()->id());
+            })
+            ->where('_lft', '!=', 1)
+            ->orderBy('file_shares.created_at', 'desc')
+            ->orderBy('files.id', 'desc')
+            ->orderBy('is_folder', 'desc')
+            ->get();
     }
 }

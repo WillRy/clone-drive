@@ -85,6 +85,12 @@
                             Name
                         </th>
                         <th
+                            v-if="search"
+                            class="text-sm font-medium text-gray-900 px-6 py-4 text-left"
+                        >
+                            Path
+                        </th>
+                        <th
                             class="text-sm font-medium text-gray-900 px-6 py-4 text-left"
                         >
                             Owner
@@ -150,6 +156,12 @@
                                 <FileIcon :file="file" />
                                 {{ file.name }}
                             </div>
+                        </td>
+                        <td
+                            v-if="search"
+                            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle"
+                        >
+                            {{ file.path }}
                         </td>
                         <td
                             class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 align-middle"
@@ -221,6 +233,7 @@ const props = defineProps({
 });
 
 const onlyFavourites = ref(false);
+const search = ref('');
 const allSelected = ref(false);
 const selected = ref({});
 const loadMoreIntersect = ref(null);
@@ -323,6 +336,7 @@ watch(
 //infinity scroll
 onMounted(() => {
     onlyFavourites.value = (new URLSearchParams(window.location.search)).get('favourites') === '1';
+    search.value = (new URLSearchParams(window.location.search)).get('search');
 
     const observer = new IntersectionObserver(
         (entries) => {

@@ -33,6 +33,7 @@ Route::controller(FileController::class)->middleware(['auth','verified'])->group
 
     Route::get('/file/download-shared-with-me','downloadSharedWithMe')->name('file.downloadSharedWithMe');
     Route::get('/file/download-shared-by-me','downloadSharedByMe')->name('file.downloadSharedByMe');
+    Route::get('/file/download-search','downloadSearch')->name('file.downloadSearch');
 
     Route::get('/shared-with-me','sharedWithMe')->name('file.sharedWithMe');
     Route::get('/shared-by-me','sharedByMe')->name('file.sharedByMe');

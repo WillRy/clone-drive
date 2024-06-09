@@ -25,6 +25,8 @@ class FileController extends Controller
 {
     public function myFiles(Request $request, string $folder = null)
     {
+        $search = $request->input('search');
+
         if ($folder) {
             $folder = File::query()
                 ->where('created_by', auth()->id())
@@ -40,15 +42,22 @@ class FileController extends Controller
 
         $files = File::query()
             ->with('starred')
-            ->where('parent_id', $folder->id)
             ->where('created_by', auth()->id())
-            ->orderBy('is_folder', 'desc')
-            ->orderBy('files.created_at', 'desc')
-            ->orderBy('files.id', 'desc')
+            ->where('_lft', '!=', 1)
             ->when($favourites, function ($query) {
                 //this relation already filters by the authenticated user
                 $query->whereHas('starred');
             })
+            ->where(function($query) use($folder, $search){
+                if(empty($search)) {
+                    $query->where('parent_id', $folder->id);
+                } else {
+                    $query->where('name', 'like', "%{$search}%");
+                }
+            })
+            ->orderBy('is_folder', 'desc')
+            ->orderBy('files.created_at', 'desc')
+            ->orderBy('files.id', 'desc')
             ->paginate(20);
 
 
@@ -71,9 +80,13 @@ class FileController extends Controller
 
     public function trash(Request $request)
     {
+        $search = $request->input('search');
         $files = File::query()
             ->onlyTrashed()
             ->where('created_by', auth()->id())
+            ->when(!empty($search),function($query) use($search){
+                $query->where('name', 'like', "%{$search}%");
+            })
             ->orderBy('is_folder', 'desc')
             ->orderBy('deleted_at', 'desc')
             ->orderBy('id', 'desc')
@@ -86,6 +99,37 @@ class FileController extends Controller
         }
 
         return Inertia::render('Trash', [
+            'files' => $files
+        ]);
+    }
+
+
+    public function sharedWithMe(Request $request)
+    {
+        $files = File::getSharedWithMe($request->input('search'))->paginate(20);
+
+        $files =  FileResource::collection($files);
+
+        if ($request->wantsJson()) {
+            return $files;
+        }
+
+        return Inertia::render('SharedWithMe', [
+            'files' => $files
+        ]);
+    }
+
+    public function sharedByMe(Request $request)
+    {
+        $files = File::getSharedByMe($request->input('search'))->paginate(20);
+
+        $files =  FileResource::collection($files);
+
+        if ($request->wantsJson()) {
+            return $files;
+        }
+
+        return Inertia::render('SharedByMe', [
             'files' => $files
         ]);
     }
@@ -380,35 +424,6 @@ class FileController extends Controller
         return redirect()->back();
     }
 
-    public function sharedWithMe(Request $request)
-    {
-        $files = File::getSharedWithMe()->paginate(20);
-
-        $files =  FileResource::collection($files);
-
-        if ($request->wantsJson()) {
-            return $files;
-        }
-
-        return Inertia::render('SharedWithMe', [
-            'files' => $files
-        ]);
-    }
-
-    public function sharedByMe(Request $request)
-    {
-        $files = File::getSharedByMe()->paginate(20);
-
-        $files =  FileResource::collection($files);
-
-        if ($request->wantsJson()) {
-            return $files;
-        }
-
-        return Inertia::render('SharedByMe', [
-            'files' => $files
-        ]);
-    }
 
     public function downloadSharedWithMe(FileActionRequest $request)
     {
@@ -451,6 +466,33 @@ class FileController extends Controller
 
         if ($all) {
             $files = File::getSharedByMe()->get();
+
+            $url = $this->createZip($files);
+            $fileName = "{$zipName}.zip";
+        } else {
+            [$url, $fileName] = $this->getDownloadUrl($ids, $zipName);
+        }
+
+        return [
+            'url' => $url,
+            'fileName' => $fileName
+        ];
+    }
+
+    public function downloadSearch(FileActionRequest $request)
+    {
+        $data = $request->validated();
+
+        $all = $data['all'] ?? false;
+        $ids = $data['ids'] ?? [];
+        $zipName = 'search';
+
+        if (!$all && empty($ids)) {
+            return redirect()->back()->with('error', 'Please select files to download');
+        }
+
+        if ($all) {
+            $files = File::visibleFilesBySearch($request->search);
 
             $url = $this->createZip($files);
             $fileName = "{$zipName}.zip";
