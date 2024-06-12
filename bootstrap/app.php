@@ -18,7 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->redirectTo('/login', AppServiceProvider::HOME);
 
-
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {

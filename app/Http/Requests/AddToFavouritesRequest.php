@@ -24,7 +24,7 @@ class AddToFavouritesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id' => ['required', Rule::exists(File::class,'id')->where(function ($query) {
+            'id' => ['required', Rule::exists(File::class, 'id')->where(function ($query) {
                 return $query->where('created_by', auth()->id());
             })],
         ];

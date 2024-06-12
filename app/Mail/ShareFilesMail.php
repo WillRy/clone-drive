@@ -21,8 +21,7 @@ class ShareFilesMail extends Mailable
         public User $user,
         public User $author,
         public array|Collection $files
-    )
-    {
+    ) {
     }
 
     /**

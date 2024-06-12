@@ -3,13 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\File;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class FileActionRequest extends ParentIdBaseRequest
 {
-
-
     protected function prepareForValidation()
     {
         $this->merge([
@@ -27,7 +24,7 @@ class FileActionRequest extends ParentIdBaseRequest
         return array_merge(parent::rules(), [
             'all' => 'nullable|boolean',
             'ids.*' => [
-                Rule::exists(File::class,'id'),
+                Rule::exists(File::class, 'id'),
                 function ($attribute, $value, $fail) {
                     $file = File::query()
                         ->leftJoin('file_shares', 'file_shares.file_id', '=', 'files.id')
@@ -39,10 +36,10 @@ class FileActionRequest extends ParentIdBaseRequest
                         })
                         ->first();
 
-                    if(!$file){
+                    if (! $file) {
                         $fail("Invalid ID {$value}");
                     }
-                }
+                },
             ],
         ]);
     }

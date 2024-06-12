@@ -28,7 +28,6 @@ class DatabaseSeeder extends Seeder
         $file->updated_by = $user->id;
         $file->makeRoot()->save();
 
-
         $users = User::factory(10)->create();
         $users->each(function ($user) {
             $file = new File();

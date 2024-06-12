@@ -8,7 +8,6 @@ use Illuminate\Validation\Rule;
 
 class TrashFilesRequest extends FormRequest
 {
-
     public function authorize(): bool
     {
         return true;
@@ -30,7 +29,7 @@ class TrashFilesRequest extends FormRequest
     {
         return [
             'all' => 'nullable|boolean',
-            'ids.*' => Rule::exists(File::class,'id')->where(function ($query) {
+            'ids.*' => Rule::exists(File::class, 'id')->where(function ($query) {
                 return $query->where('created_by', auth()->id());
             }),
         ];

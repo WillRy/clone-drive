@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use App\Models\File;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Cache\Store;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -25,8 +24,7 @@ class UploadFileToCloudJob implements ShouldQueue
      */
     public function __construct(
         protected File $file
-    )
-    {
+    ) {
         //
     }
 
@@ -37,7 +35,7 @@ class UploadFileToCloudJob implements ShouldQueue
     {
         $model = $this->file;
 
-        if(!$model->uploaded_on_cloud) {
+        if (! $model->uploaded_on_cloud) {
             $localPath = Storage::disk('local')->path($model->storage_path);
 
             Log::info("Uploading file on cloud {$localPath}");
@@ -49,14 +47,14 @@ class UploadFileToCloudJob implements ShouldQueue
                 $model->saveQuietly();
 
                 if ($success) {
-                    Log::debug("Uploaded. Updating the database.");
+                    Log::debug('Uploaded. Updating the database.');
                     $model->uploaded_on_cloud = 1;
                     $model->saveQuietly();
                 } else {
                     Log::error('Unable to upload files to bucket');
                     $this->fail('Unable to upload files to bucket');
                 }
-            } catch(\Exception $e) {
+            } catch (\Exception $e) {
                 Log::error($e->getMessage());
                 $this->fail($e);
             }
