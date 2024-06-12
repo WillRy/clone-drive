@@ -11,3 +11,26 @@ Possui funcionalidades como:
 - Upload de arquivos para bucket
 
 ![Pagina inicial](./midia/fcloud-home.png)
+
+
+## Executar projeto
+
+```shell
+docker compose up -d
+
+npm install
+
+npm run dev
+```
+
+## Autenticar
+
+**usuario**: admin@admin.com
+**senha**: password
+
+
+## s3 bucket 
+
+O ambiente docker possui o "minio" para simular um ambiente s3, acessível na URL:
+
+http://localhost:9000
