@@ -13,12 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use \Illuminate\Support\Str;
 
 class File extends Model
 {
     use HasFactory, NodeTrait, SoftDeletes, HasCreatorAndUpdater;
 
-    protected $fillable = ['name', 'is_folder', 'user_id'];
+    protected $fillable = ['name', 'is_folder', 'user_id', 'uploaded_on_cloud'];
 
 
     protected static function boot()
@@ -30,9 +31,8 @@ class File extends Model
                 return;
             }
 
-            $model->path = (!$model->parent->isRoot() ? $model->parent->path . '/' : '') . \Illuminate\Support\Str::slug($model->name);
+            $model->path = ( !$model->parent->isRoot() ? $model->parent->path . '/' : '' ) . Str::slug($model->name);
         });
-
         // static::deleted(function(File $model) {
         //     if(!$model->is_folder) {
         //         Storage::delete($model->storage_path);
